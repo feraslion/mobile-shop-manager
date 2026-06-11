@@ -1,0 +1,28 @@
+name: mobile_shop_manager
+description: A comprehensive Mobile Shop Management System.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite: ^2.3.0
+  sqflite_common_ffi: ^2.3.0
+  path: ^1.8.3
+  path_provider: ^2.1.1
+  provider: ^6.0.5
+  intl: ^0.18.1
+  flutter_barcode_scanner: ^2.0.0
+  pdf: ^3.10.7
+  printing: ^5.11.1
+  shared_preferences: ^2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
