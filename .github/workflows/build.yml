@@ -5,7 +5,6 @@ on:
     branches:
       - main
       - master
-
   workflow_dispatch:
 
 permissions:
@@ -39,24 +38,31 @@ jobs:
 
       - name: Restore Keystore
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/upload-keystore.jks
+          # 1. ضمان وجود مجلد android لتجنب خطأ "No such file or directory"
+          mkdir -p android
+          
+          # 2. فك التشفير وحفظ الملف
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/upload-keystore.jks
+          
+          # 3. خطوة اختيارية للتحقق من أن الملف ليس فارغاً (لمنع الأخطاء الصامتة)
+          ls -l android/upload-keystore.jks
 
-      - name: Create key.properties
-        run: |
+      - name: Create key.properties        run: |
           cat > android/key.properties << EOF
           storePassword=${{ secrets.ANDROID_STORE_PASSWORD }}
           keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
           keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          storeFile=../upload-keystore.jks
+          # تم التصحيح: المسار نسبي لمجلد android، لذا لا نحتاج لـ ../
+          storeFile=upload-keystore.jks
           EOF
 
       - name: Analyze
         run: flutter analyze
-        continue-on-error: true
+        # ملاحظة: قمت بإزالة continue-on-error هنا لضمان جودة الكود قبل الإصدار
 
       - name: Run Tests
         run: flutter test
-        continue-on-error: true
+        continue-on-error: true # يمكن إبقاؤها هنا إذا كانت بعض الاختبارات غير مستقرة
 
       - name: Build APK
         run: flutter build apk --release
@@ -88,11 +94,13 @@ jobs:
           channel: stable
           cache: true
 
-      - run: flutter config --enable-windows-desktop
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+      - name: Get Dependencies
+        run: flutter pub get
 
-      - run: flutter pub get
-
-      - run: flutter build windows --release
+      - name: Build Windows
+        run: flutter build windows --release
 
       - name: Zip Windows Build
         shell: powershell
@@ -101,7 +109,8 @@ jobs:
             -Path build/windows/x64/runner/Release/* `
             -DestinationPath windows-release.zip
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
         with:
           name: windows-release
           path: windows-release.zip
@@ -111,11 +120,12 @@ jobs:
     needs:
       - android
       - windows
-
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        # الإصدار v4 يقوم تلقائياً بإنشاء مجلدات بأسماء الـ artifacts (release-apk, release-aab, windows-release)
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
